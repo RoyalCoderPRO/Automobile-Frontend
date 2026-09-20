@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Automobile Engine & Body Explorer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Share+Tech+Mono&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#0a0e1a;color:#e2e8f0;min-height:100vh}
+
+.header{text-align:center;padding:18px 20px 6px}
+.header h1{font-size:1.7rem;font-weight:700;background:linear-gradient(90deg,#38bdf8,#818cf8,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header p{color:#64748b;margin-top:3px;font-size:.85rem}
+
+/* ── Top selector bar ── */
+.selector-bar{background:#111827;border-bottom:1px solid #1e293b;padding:10px 24px;display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap}
+.sel-group{display:flex;align-items:center;gap:8px}
+.sel-label{font-family:'Share Tech Mono',monospace;font-size:.65rem;color:#475569;letter-spacing:2px;text-transform:uppercase;white-space:nowrap}
+
+/* Engine buttons */
+.eng-btn{padding:7px 14px;border:2px solid #1e293b;border-radius:7px;background:#0a0e1a;color:#64748b;font-family:'Share Tech Mono',monospace;font-weight:600;font-size:.8rem;cursor:pointer;transition:all .3s;text-transform:uppercase;letter-spacing:1px}
+.eng-btn:hover{border-color:#38bdf8;color:#38bdf8}
+.eng-btn.active{border-color:var(--bc);background:var(--bb);color:var(--bc);box-shadow:0 0 12px var(--bs)}
+
+/* ── Custom dropdown ── */
+.dropdown-wrap{position:relative}
+.dropdown-btn{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 12px;border:2px solid #1e293b;border-radius:7px;
+  background:#0a0e1a;cursor:pointer;transition:all .3s;min-width:170px;
+  font-family:'Share Tech Mono',monospace;font-size:.8rem;
+}
+.dropdown-btn:hover{border-color:#64748b}
+.dropdown-btn.open{border-color:#64748b;border-bottom-color:transparent;border-radius:7px 7px 0 0}
+.dropdown-btn .dd-icon{width:36px;height:22px;flex-shrink:0}
+.dropdown-btn .dd-label{flex:1;color:#e2e8f0;letter-spacing:.5px}
+.dropdown-btn .dd-arrow{color:#475569;font-size:.6rem;transition:transform .2s}
+.dropdown-btn.open .dd-arrow{transform:rotate(180deg)}
+
+.dropdown-menu{
+  display:none;position:absolute;top:100%;left:0;right:0;z-index:99;
+  background:#111827;border:2px solid #64748b;border-top:none;border-radius:0 0 8px 8px;
+  overflow:hidden;
+}
+.dropdown-menu.open{display:block}
+.dd-option{
+  display:flex;align-items:center;gap:10px;padding:7px 12px;cursor:pointer;
+  transition:background .2s;font-family:'Share Tech Mono',monospace;font-size:.75rem;
+}
+.dd-option:hover{background:#1e293b}
+.dd-option.selected{background:#1a2a3a}
+.dd-option .dd-icon{width:40px;height:24px;flex-shrink:0}
+.dd-option .dd-name{color:#e2e8f0;letter-spacing:.5px}
+.dd-option .dd-count{color:#475569;font-size:.65rem;margin-left:auto}
+.dd-option.sel-active .dd-name{color:var(--oc)}
+
+/* ── Main layout ── */
+.main{max-width:1200px;margin:0 auto;padding:16px;display:grid;grid-template-columns:360px 1fr;gap:16px;align-items:start}
+
+/* ── Car panel (single image) ── */
+.car-panel{background:#0c1929;border-radius:12px;border:1px solid #1a2a4a;overflow:hidden;position:relative}
+.car-tag{display:block;text-align:center;background:#38bdf8;color:#0a0e1a;font-family:'Share Tech Mono',monospace;font-weight:700;padding:6px 0;font-size:.75rem;letter-spacing:2px;transition:background .4s}
+.body-badge{position:absolute;top:38px;right:8px;padding:3px 8px;border-radius:3px;font-family:'Share Tech Mono',monospace;font-size:.6rem;font-weight:600;letter-spacing:1px;background:#1a2a4a;color:#475569;transition:all .3s;z-index:4}
+.car-img-wrap{position:relative}
+.car-img-wrap img{width:100%;display:block;min-height:200px;object-fit:cover;transition:opacity .4s}
+.eng-glow{position:absolute;width:100px;height:80px;border-radius:50%;pointer-events:none;z-index:3;background:radial-gradient(circle,var(--gc,#38bdf833) 0%,transparent 70%);animation:gp 2.5s ease-in-out infinite;transition:top .5s cubic-bezier(.4,0,.2,1),left .5s cubic-bezier(.4,0,.2,1),opacity .4s;opacity:0}
+.eng-glow.on{opacity:1}
+@keyframes gp{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
+.eng-dia{position:absolute;width:105px;height:72px;z-index:4;pointer-events:none;transition:top .5s cubic-bezier(.4,0,.2,1),left .5s cubic-bezier(.4,0,.2,1),opacity .4s;opacity:0}
+.eng-dia.on{opacity:1}
+.eng-dia svg{width:100%;height:100%;filter:drop-shadow(0 0 10px var(--ec,#38bdf8))}
+.car-footer{padding:8px 12px 10px;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:#3a6a9a;min-height:16px;text-align:center}
+.info-row{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+.info-chip{padding:3px 8px;border-radius:4px;font-size:.65rem;background:#1a2a4a;color:#64748b;font-family:'Share Tech Mono',monospace}
+.lbl{color:#475569;font-size:.65rem;font-family:'Share Tech Mono',monospace;margin-right:3px}
+.loc-badge{display:inline-block;padding:2px 6px;border-radius:3px;font-size:.6rem;margin-left:5px;background:#1a2a4a;color:#64748b}
+
+/* ── Right column ── */
+.right-col{display:flex;flex-direction:column;gap:14px}
+.panel{background:#111827;border-radius:12px;padding:16px;border:1px solid #1e293b}
+.panel h3{font-size:.7rem;font-weight:600;margin-bottom:10px;color:#64748b;text-transform:uppercase;letter-spacing:1.5px}
+.bar-chart{display:flex;align-items:flex-end;justify-content:space-between;height:155px;gap:5px}
+.bar-group{display:flex;flex-direction:column;align-items:center;flex:1;cursor:pointer;transition:opacity .4s}
+.bar-group.dimmed{opacity:.4}
+.bar-group.dimmed:hover{opacity:.4}
+.bar{width:100%;border-radius:5px 5px 0 0;transition:all .5s cubic-bezier(.4,0,.2,1);min-height:3px}
+.bar-count{font-size:.7rem;font-weight:700;margin-bottom:4px;font-family:'Share Tech Mono',monospace}
+.bar-label{margin-top:6px;font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:#475569;transition:color .4s}
+.bar-group.active .bar-label{color:#e2e8f0}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:#0a0e1a;border-radius:8px;padding:10px;text-align:center;border:1px solid #1e293b;transition:all .3s}
+.stat-card:hover{border-color:#334155;transform:translateY(-2px)}
+.stat-val{font-size:1.2rem;font-weight:700;color:#38bdf8;transition:color .4s;font-family:'Share Tech Mono',monospace}
+.stat-label{font-size:.65rem;color:#475569;margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+.makes-list{display:flex;flex-wrap:wrap;gap:5px}
+.make-tag{padding:4px 10px;border-radius:4px;font-size:.72rem;background:#0a0e1a;border:1px solid #1e293b;transition:all .3s;font-family:'Share Tech Mono',monospace}
+
+/* ── Drive-wheel selector ── */
+.dw-row{display:flex;gap:8px;padding:8px 12px 0;justify-content:center;flex-wrap:wrap}
+.dw-btn{padding:5px 14px;border:1.5px solid #1e293b;border-radius:6px;background:#0a0e1a;color:#475569;font-family:'Share Tech Mono',monospace;font-weight:600;font-size:.75rem;cursor:pointer;transition:all .3s;text-transform:uppercase;letter-spacing:1px}
+.dw-btn:hover{border-color:#64748b;color:#94a3b8}
+.dw-btn.active{border-color:var(--bc);background:var(--bb);color:var(--bc);box-shadow:0 0 10px var(--bs)}
+
+/* ── Wheel overlays ── */
+/* Each wheel div is absolutely positioned at a corner of the car image.
+   It holds two SVG rings that counter-rotate to create tyre-spin effect.  */
+.wheel-dot{
+  position:absolute;width:46px;height:46px;z-index:6;pointer-events:none;
+  transform:translate(-50%,-50%);
+  transition:opacity .45s;opacity:0;
+}
+.wheel-dot.lit{opacity:1}
+
+/* outer dashed ring – spins forward */
+@keyframes spin-fwd {from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+/* inner streak ring – spins backward */
+@keyframes spin-bwd {from{transform:rotate(0deg)}to{transform:rotate(-360deg)}}
+/* glow pulse */
+@keyframes wglow{0%,100%{opacity:.5;r:18}50%{opacity:1;r:21}}
+
+.wr-outer{animation:spin-fwd .55s linear infinite;transform-origin:50% 50%}
+.wr-inner{animation:spin-bwd .4s  linear infinite;transform-origin:50% 50%}
+.wr-glow {animation:wglow 1.1s ease-in-out infinite}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏎️ Automobile Engine &amp; Body Explorer</h1>
+  <p>Select engine type &amp; body style to filter stats and see engine position</p>
+</div>
+
+<!-- ── SELECTOR BAR ── -->
+<div class="selector-bar">
+  <div class="sel-group">
+    <span class="sel-label">Engine</span>
+    <div id="engineBtns" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+  </div>
+  <div class="sel-group">
+    <span class="sel-label">Body</span>
+    <!-- Custom dropdown -->
+    <div class="dropdown-wrap" id="ddWrap">
+      <div class="dropdown-btn" id="ddBtn" onclick="toggleDD()">
+        <svg class="dd-icon" viewBox="0 0 40 24" fill="none" id="ddThumb"><!-- set by JS --></svg>
+        <span class="dd-label" id="ddLabel">ALL BODIES</span>
+        <span class="dd-arrow">▼</span>
+      </div>
+      <div class="dropdown-menu" id="ddMenu"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+  <!-- Single car view -->
+  <div class="car-panel">
+    <span class="car-tag" id="carTag">SELECT ENGINE</span>
+    <div class="body-badge" id="bodyBadge">ALL BODIES</div>
+    <div class="car-img-wrap" id="carBox">
+      <img id="carImg" src="car_blueprint.jpg" alt="Car blueprint"/>
+      <div class="eng-glow" id="engGlow"></div>
+      <div class="eng-dia"  id="engDia"></div>
+      <!-- Wheel spin overlays: % positions tuned to the blueprint image -->
+      <div class="wheel-dot" id="wFL" style="top:17%;left:16%"></div>
+      <div class="wheel-dot" id="wFR" style="top:17%;left:84%"></div>
+      <div class="wheel-dot" id="wRL" style="top:82%;left:16%"></div>
+      <div class="wheel-dot" id="wRR" style="top:82%;left:84%"></div>
+    </div>
+    <!-- Drive-wheel selector -->
+    <div class="dw-row" id="dwBtns"></div>
+    <div class="car-footer" id="carFooter"></div>
+    <div class="info-row" id="cylInfo"></div>
+    <div class="info-row" id="fsInfo" style="margin-top:4px;padding-bottom:8px"></div>
+  </div>
+
+  <!-- Right -->
+  <div class="right-col">
+    <div class="panel">
+      <h3 id="chartTitle">Cars by Engine Type</h3>
+      <div class="bar-chart" id="barChart"></div>
+    </div>
+    <div class="panel">
+      <h3>Statistics</h3>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-val" id="sC">—</div><div class="stat-label">Cars</div></div>
+        <div class="stat-card"><div class="stat-val" id="sH">—</div><div class="stat-label">Avg HP</div></div>
+        <div class="stat-card"><div class="stat-val" id="sP">—</div><div class="stat-label">Avg Price</div></div>
+        <div class="stat-card"><div class="stat-val" id="sM">—</div><div class="stat-label">Avg MPG</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Brands</h3>
+      <div class="makes-list" id="makesList"><span style="color:#475569">Select above</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data ────────────────────────────────────────────────────────────────
+const ENGINES=[
+  {t:"dohc",n:12,hp:146,pr:18116,mp:20,loc:"front",cy:["four","six"],fs:["mpfi"],ds:"Dual Overhead Cam — two camshafts per bank, high-rev power"},
+  {t:"l",   n:12,hp:96, pr:14628,mp:25,loc:"front",cy:["three","four"],fs:["2bbl","mpfi","idi"],ds:"L-Head (Flathead) — side-valve, simple & compact"},
+  {t:"ohc", n:145,hp:94,pr:11567,mp:27,loc:"front",cy:["four","five","six"],fs:["mpfi","2bbl","mfi","1bbl","spfi","idi","spdi"],ds:"Overhead Cam — most common, best efficiency/power balance"},
+  {t:"ohcf",n:15,hp:110,pr:13739,mp:25,loc:"rear", cy:["four","six"],fs:["mpfi","2bbl"],ds:"Flat/Boxer — horizontally opposed. Porsche mounts REAR!"},
+  {t:"ohcv",n:13,hp:170,pr:25098,mp:17,loc:"front",cy:["six","eight","twelve"],fs:["mpfi"],ds:"V-Type OHC — premium power for luxury & sport"},
+  {t:"rotor",n:4,hp:110,pr:13020,mp:17,loc:"front",cy:["two"],fs:["4bbl","mpfi"],ds:"Rotary (Wankel) — spinning triangular rotor, Mazda only"}
+];
+const BODIES=[
+  {b:"all",      img:"car_blueprint.jpg",    label:"All Bodies",  n:201,hp:103,pr:13207,mp:25.5,mk:[]},
+  {b:"convertible",img:"topdown_convertible.jpg",label:"Convertible",n:6,hp:131.7,pr:21890,mp:20.5,mk:["alfa-romero","mercedes-benz","porsche","toyota","volkswagen"],desc:"Open-top, 2-seat roadster"},
+  {b:"hardtop",  img:"topdown_hardtop.jpg",  label:"Hardtop",    n:8, hp:142.2,pr:22208,mp:21.6,mk:["mercedes-benz","nissan","porsche","toyota"],desc:"Fixed-roof, no B-pillar coupe"},
+  {b:"hatchback",img:"topdown_hatchback.jpg",label:"Hatchback",  n:68,hp:97.7, pr:9957, mp:26.6,mk:["alfa-romero","chevrolet","dodge","honda","isuzu","mazda","mercury","mitsubishi","nissan","plymouth","porsche","renault","saab","subaru","toyota","volkswagen"],desc:"Compact 2-box, sloped hatch"},
+  {b:"sedan",    img:"car_blueprint.jpg",    label:"Sedan",      n:94,hp:103.8,pr:14460,mp:25.1,mk:["audi","bmw","chevrolet","dodge","honda","isuzu","jaguar","mazda","mercedes-benz","mitsubishi","nissan","peugot","plymouth","saab","subaru","toyota","volkswagen","volvo"],desc:"Classic 3-box, separate trunk"},
+  {b:"wagon",    img:"topdown_wagon.jpg",    label:"Wagon",      n:25,hp:97.8, pr:12372,mp:24,  mk:["audi","dodge","honda","mercedes-benz","nissan","peugot","plymouth","renault","subaru","toyota","volkswagen","volvo"],desc:"Long roof, rear cargo estate"}
+];
+const COMB={
+  convertible:[{t:"dohc",n:2,hp:111,pr:14998,mp:21},{t:"l",n:0},{t:"ohc",n:2,hp:103,pr:14632,mp:24},{t:"ohcf",n:1,hp:207,pr:37028,mp:17},{t:"ohcv",n:1,hp:155,pr:35056,mp:16},{t:"rotor",n:0}],
+  hardtop:    [{t:"dohc",n:0},{t:"l",n:0},{t:"ohc",n:5,hp:108,pr:13142,mp:25},{t:"ohcf",n:2,hp:207,pr:33278,mp:17},{t:"ohcv",n:1,hp:184,pr:45400,mp:14},{t:"rotor",n:0}],
+  hatchback:  [{t:"dohc",n:4,hp:149,pr:15061,mp:21},{t:"l",n:1,hp:48,pr:5151,mp:47},{t:"ohc",n:52,hp:90,pr:9001,mp:28},{t:"ohcf",n:3,hp:72,pr:6591,mp:28},{t:"ohcv",n:4,hp:169,pr:17949,mp:19},{t:"rotor",n:4,hp:110,pr:13020,mp:17}],
+  sedan:      [{t:"dohc",n:5,hp:156,pr:22282,mp:19},{t:"l",n:7,hp:102,pr:15759,mp:23},{t:"ohc",n:71,hp:95,pr:13134,mp:26},{t:"ohcf",n:5,hp:90,pr:9071,mp:27},{t:"ohcv",n:6,hp:173,pr:26604,mp:16},{t:"rotor",n:0}],
+  wagon:      [{t:"dohc",n:1,hp:156,pr:15750,mp:19},{t:"l",n:4,hp:96,pr:15018,mp:22},{t:"ohc",n:15,hp:92,pr:12114,mp:25},{t:"ohcf",n:4,hp:92,pr:9342,mp:25},{t:"ohcv",n:1,hp:152,pr:14399,mp:17},{t:"rotor",n:0}]
+};
+const EC={dohc:{m:'#f472b6',b:'#f472b611',s:'#f472b633'},l:{m:'#a78bfa',b:'#a78bfa11',s:'#a78bfa33'},ohc:{m:'#38bdf8',b:'#38bdf811',s:'#38bdf833'},ohcf:{m:'#34d399',b:'#34d39911',s:'#34d39933'},ohcv:{m:'#fb923c',b:'#fb923c11',s:'#fb923c33'},rotor:{m:'#facc15',b:'#facc1511',s:'#facc1533'}};
+const BC={all:'#64748b',convertible:'#f472b6',hardtop:'#fb923c',hatchback:'#38bdf8',sedan:'#818cf8',wagon:'#34d399'};
+
+let selEngine=null, selBody='all';
+
+// ── Simple SVG silhouette icons for dropdown ─────────────────────────────
+// Top-down footprint outlines: just the body shape (very simple)
+const ICONS={
+  all:`<rect x="8" y="2" width="24" height="20" rx="3" stroke="#64748b" stroke-width="1.2" fill="none"/>
+       <rect x="11" y="6" width="18" height="12" rx="1" stroke="#64748b" stroke-width="0.7" fill="#64748b15"/>
+       <circle cx="10" cy="4" r="2" fill="#64748b44"/><circle cx="30" cy="4" r="2" fill="#64748b44"/>
+       <circle cx="10" cy="20" r="2" fill="#64748b44"/><circle cx="30" cy="20" r="2" fill="#64748b44"/>`,
+  // convertible: short & wide, open top (no roof rect fill)
+  convertible:`<path d="M12 2 Q20 1 28 2 L30 4 L30 20 L28 22 Q20 23 12 22 L10 20 L10 4 Z" stroke="var(--c)" stroke-width="1.2" fill="var(--c)12"/>
+               <circle cx="11" cy="4" r="2" fill="var(--c)55"/><circle cx="29" cy="4" r="2" fill="var(--c)55"/>
+               <circle cx="11" cy="20" r="2" fill="var(--c)55"/><circle cx="29" cy="20" r="2" fill="var(--c)55"/>
+               <line x1="20" y1="8" x2="20" y2="16" stroke="var(--c)" stroke-width="0.6" opacity="0.5"/>`,
+  // hardtop: wide at front, narrower at rear (coupe taper)
+  hardtop:`<path d="M10 3 Q20 1 30 3 L31 6 L31 18 L30 20 Q20 22 10 20 L9 18 L9 6 Z" stroke="var(--c)" stroke-width="1.2" fill="var(--c)12"/>
+           <circle cx="10" cy="5" r="2" fill="var(--c)55"/><circle cx="30" cy="5" r="2" fill="var(--c)55"/>
+           <circle cx="10" cy="19" r="2" fill="var(--c)55"/><circle cx="30" cy="19" r="2" fill="var(--c)55"/>
+           <rect x="14" y="7" width="12" height="10" rx="1" stroke="var(--c)" stroke-width="0.6" fill="var(--c)18"/>`,
+  // hatchback: compact square-ish shape
+  hatchback:`<path d="M11 2 Q20 1 29 2 L30 5 L30 21 L29 22 Q20 23 11 22 L10 21 L10 5 Z" stroke="var(--c)" stroke-width="1.2" fill="var(--c)12"/>
+             <circle cx="11" cy="4" r="2" fill="var(--c)55"/><circle cx="29" cy="4" r="2" fill="var(--c)55"/>
+             <circle cx="11" cy="20" r="2" fill="var(--c)55"/><circle cx="29" cy="20" r="2" fill="var(--c)55"/>
+             <rect x="13" y="7" width="14" height="10" rx="1" stroke="var(--c)" stroke-width="0.6" fill="var(--c)18"/>`,
+  // sedan: classic with pinched waist
+  sedan:`<path d="M10 3 Q20 2 30 3 L31 5 Q31 8 29 9 L29 15 Q31 16 31 19 L30 21 Q20 22 10 21 L9 19 Q9 16 11 15 L11 9 Q9 8 9 5 Z" stroke="var(--c)" stroke-width="1.2" fill="var(--c)12"/>
+         <circle cx="10" cy="4" r="2" fill="var(--c)55"/><circle cx="30" cy="4" r="2" fill="var(--c)55"/>
+         <circle cx="10" cy="20" r="2" fill="var(--c)55"/><circle cx="30" cy="20" r="2" fill="var(--c)55"/>`,
+  // wagon: long rectangle
+  wagon:`<path d="M10 3 Q20 2 30 3 L31 5 L31 21 L30 23 Q20 24 10 23 L9 21 L9 5 Z" stroke="var(--c)" stroke-width="1.2" fill="var(--c)12"/>
+         <circle cx="10" cy="4" r="2" fill="var(--c)55"/><circle cx="30" cy="4" r="2" fill="var(--c)55"/>
+         <circle cx="10" cy="22" r="2" fill="var(--c)55"/><circle cx="30" cy="22" r="2" fill="var(--c)55"/>
+         <line x1="9" y1="15" x2="31" y2="15" stroke="var(--c)" stroke-width="0.6" opacity="0.5"/>
+         <rect x="13" y="16" width="14" height="5" rx="1" stroke="var(--c)" stroke-width="0.5" fill="var(--c)20"/>`
+};
+
+function iconSVG(b,c='#64748b',vb='0 0 40 25'){
+  return `<svg viewBox="${vb}" fill="none" xmlns="http://www.w3.org/2000/svg" style="--c:${c}">${ICONS[b]||ICONS.all}</svg>`;
+}
+
+// ── Engine SVG diagrams ─────────────────────────────────────────────────
+function eSVG(t,c){const s={
+dohc:`<svg viewBox="0 0 130 72" fill="none"><rect x="4" y="6" width="122" height="52" rx="7" stroke="${c}" stroke-width="1.8" fill="${c}12"/><rect x="4" y="6" width="122" height="7" rx="4" fill="${c}20"/><rect x="4" y="45" width="122" height="13" rx="4" fill="${c}18"/><rect x="10" y="12" width="110" height="10" rx="3" stroke="${c}" stroke-width="1" fill="${c}22"/><circle cx="18" cy="17" r="4" stroke="${c}" stroke-width="1" fill="${c}33"/><circle cx="43" cy="17" r="4" stroke="${c}" stroke-width="1" fill="${c}33"/><circle cx="68" cy="17" r="4" stroke="${c}" stroke-width="1" fill="${c}33"/><circle cx="93" cy="17" r="4" stroke="${c}" stroke-width="1" fill="${c}33"/><circle cx="118" cy="17" r="4" stroke="${c}" stroke-width="1" fill="${c}33"/><rect x="10" y="36" width="110" height="10" rx="3" stroke="${c}" stroke-width="1" fill="${c}22"/><circle cx="18" cy="41" r="4" stroke="${c}" stroke-width="1" fill="${c}33"/><circle cx="43" cy="41" r="4" stroke="${c}" stroke-width="1" fill="${c}33"/><circle cx="68" cy="41" r="4" stroke="${c}" stroke-width="1" fill="${c}33"/><circle cx="93" cy="41" r="4" stroke="${c}" stroke-width="1" fill="${c}33"/><circle cx="118" cy="41" r="4" stroke="${c}" stroke-width="1" fill="${c}33"/><circle cx="30" cy="29" r="5" stroke="${c}" stroke-width="1.2" fill="${c}0a"/><circle cx="30" cy="29" r="2" stroke="${c}" stroke-width="0.8" fill="${c}44"/><circle cx="55" cy="29" r="5" stroke="${c}" stroke-width="1.2" fill="${c}0a"/><circle cx="55" cy="29" r="2" stroke="${c}" stroke-width="0.8" fill="${c}44"/><circle cx="80" cy="29" r="5" stroke="${c}" stroke-width="1.2" fill="${c}0a"/><circle cx="80" cy="29" r="2" stroke="${c}" stroke-width="0.8" fill="${c}44"/><circle cx="105" cy="29" r="5" stroke="${c}" stroke-width="1.2" fill="${c}0a"/><circle cx="105" cy="29" r="2" stroke="${c}" stroke-width="0.8" fill="${c}44"/><circle cx="10" cy="29" r="4.5" stroke="${c}" stroke-width="1.2" fill="${c}30"/><text x="65" y="68" text-anchor="middle" fill="${c}" font-size="7.5" font-weight="700" font-family="Share Tech Mono">DOHC — INLINE 4</text></svg>`,
+l:`<svg viewBox="0 0 130 72" fill="none"><rect x="4" y="6" width="122" height="52" rx="6" stroke="${c}" stroke-width="1.8" fill="${c}10"/><rect x="10" y="10" width="110" height="22" rx="4" stroke="${c}" stroke-width="1" fill="${c}18"/><circle cx="30" cy="21" r="8" stroke="${c}" stroke-width="1.2" fill="${c}25"/><circle cx="30" cy="21" r="4" stroke="${c}" stroke-width="0.8" fill="${c}0a"/><circle cx="55" cy="21" r="8" stroke="${c}" stroke-width="1.2" fill="${c}25"/><circle cx="55" cy="21" r="4" stroke="${c}" stroke-width="0.8" fill="${c}0a"/><circle cx="80" cy="21" r="8" stroke="${c}" stroke-width="1.2" fill="${c}25"/><circle cx="80" cy="21" r="4" stroke="${c}" stroke-width="0.8" fill="${c}0a"/><circle cx="105" cy="21" r="8" stroke="${c}" stroke-width="1.2" fill="${c}25"/><circle cx="105" cy="21" r="4" stroke="${c}" stroke-width="0.8" fill="${c}0a"/><rect x="10" y="35" width="110" height="18" rx="4" stroke="${c}" stroke-width="1.2" fill="${c}20"/><ellipse cx="26" cy="44" rx="4" ry="5" stroke="${c}" stroke-width="0.8" fill="${c}30"/><ellipse cx="34" cy="44" rx="4" ry="5" stroke="${c}" stroke-width="0.8" fill="${c}30"/><ellipse cx="51" cy="44" rx="4" ry="5" stroke="${c}" stroke-width="0.8" fill="${c}30"/><ellipse cx="59" cy="44" rx="4" ry="5" stroke="${c}" stroke-width="0.8" fill="${c}30"/><ellipse cx="76" cy="44" rx="4" ry="5" stroke="${c}" stroke-width="0.8" fill="${c}30"/><ellipse cx="84" cy="44" rx="4" ry="5" stroke="${c}" stroke-width="0.8" fill="${c}30"/><ellipse cx="101" cy="44" rx="4" ry="5" stroke="${c}" stroke-width="0.8" fill="${c}30"/><ellipse cx="109" cy="44" rx="4" ry="5" stroke="${c}" stroke-width="0.8" fill="${c}30"/><text x="65" y="68" text-anchor="middle" fill="${c}" font-size="7.5" font-weight="700" font-family="Share Tech Mono">L-HEAD / FLATHEAD</text></svg>`,
+ohc:`<svg viewBox="0 0 130 72" fill="none"><rect x="4" y="6" width="122" height="52" rx="7" stroke="${c}" stroke-width="1.8" fill="${c}12"/><line x1="30" y1="6" x2="30" y2="12" stroke="${c}" stroke-width="3" stroke-linecap="round" opacity="0.4"/><line x1="55" y1="6" x2="55" y2="12" stroke="${c}" stroke-width="3" stroke-linecap="round" opacity="0.4"/><line x1="80" y1="6" x2="80" y2="12" stroke="${c}" stroke-width="3" stroke-linecap="round" opacity="0.4"/><line x1="105" y1="6" x2="105" y2="12" stroke="${c}" stroke-width="3" stroke-linecap="round" opacity="0.4"/><rect x="10" y="12" width="110" height="11" rx="3" stroke="${c}" stroke-width="1" fill="${c}22"/><circle cx="18" cy="17.5" r="4.5" stroke="${c}" stroke-width="1" fill="${c}35"/><circle cx="43" cy="17.5" r="4.5" stroke="${c}" stroke-width="1" fill="${c}35"/><circle cx="68" cy="17.5" r="4.5" stroke="${c}" stroke-width="1" fill="${c}35"/><circle cx="93" cy="17.5" r="4.5" stroke="${c}" stroke-width="1" fill="${c}35"/><circle cx="118" cy="17.5" r="4.5" stroke="${c}" stroke-width="1" fill="${c}35"/><rect x="22" y="26" width="16" height="6" rx="2" stroke="${c}" stroke-width="0.7" fill="${c}18"/><rect x="47" y="26" width="16" height="6" rx="2" stroke="${c}" stroke-width="0.7" fill="${c}18"/><rect x="72" y="26" width="16" height="6" rx="2" stroke="${c}" stroke-width="0.7" fill="${c}18"/><rect x="97" y="26" width="16" height="6" rx="2" stroke="${c}" stroke-width="0.7" fill="${c}18"/><circle cx="30" cy="38" r="5" stroke="${c}" stroke-width="1.2" fill="${c}0a"/><circle cx="30" cy="38" r="2" stroke="${c}" stroke-width="0.8" fill="${c}44"/><circle cx="55" cy="38" r="5" stroke="${c}" stroke-width="1.2" fill="${c}0a"/><circle cx="55" cy="38" r="2" stroke="${c}" stroke-width="0.8" fill="${c}44"/><circle cx="80" cy="38" r="5" stroke="${c}" stroke-width="1.2" fill="${c}0a"/><circle cx="80" cy="38" r="2" stroke="${c}" stroke-width="0.8" fill="${c}44"/><circle cx="105" cy="38" r="5" stroke="${c}" stroke-width="1.2" fill="${c}0a"/><circle cx="105" cy="38" r="2" stroke="${c}" stroke-width="0.8" fill="${c}44"/><rect x="22" y="47" width="14" height="6" rx="2" stroke="${c}" stroke-width="0.7" fill="${c}15" opacity="0.7"/><rect x="47" y="47" width="14" height="6" rx="2" stroke="${c}" stroke-width="0.7" fill="${c}15" opacity="0.7"/><rect x="72" y="47" width="14" height="6" rx="2" stroke="${c}" stroke-width="0.7" fill="${c}15" opacity="0.7"/><rect x="97" y="47" width="14" height="6" rx="2" stroke="${c}" stroke-width="0.7" fill="${c}15" opacity="0.7"/><text x="65" y="68" text-anchor="middle" fill="${c}" font-size="7.5" font-weight="700" font-family="Share Tech Mono">OHC — INLINE 4</text></svg>`,
+ohcf:`<svg viewBox="0 0 130 72" fill="none"><rect x="44" y="16" width="42" height="38" rx="5" stroke="${c}" stroke-width="1.8" fill="${c}22"/><circle cx="65" cy="35" r="7" stroke="${c}" stroke-width="1.2" fill="${c}35"/><circle cx="65" cy="35" r="3" stroke="${c}" stroke-width="0.8" fill="${c}55"/><rect x="6" y="11" width="38" height="14" rx="4" stroke="${c}" stroke-width="1.3" fill="${c}18"/><rect x="6" y="45" width="38" height="14" rx="4" stroke="${c}" stroke-width="1.3" fill="${c}18"/><circle cx="16" cy="18" r="5" stroke="${c}" stroke-width="1" fill="${c}28"/><circle cx="16" cy="18" r="2" fill="${c}44"/><circle cx="33" cy="18" r="5" stroke="${c}" stroke-width="1" fill="${c}28"/><circle cx="33" cy="18" r="2" fill="${c}44"/><circle cx="16" cy="52" r="5" stroke="${c}" stroke-width="1" fill="${c}28"/><circle cx="16" cy="52" r="2" fill="${c}44"/><circle cx="33" cy="52" r="5" stroke="${c}" stroke-width="1" fill="${c}28"/><circle cx="33" cy="52" r="2" fill="${c}44"/><line x1="38" y1="18" x2="44" y2="30" stroke="${c}" stroke-width="0.8" opacity="0.5"/><line x1="38" y1="52" x2="44" y2="40" stroke="${c}" stroke-width="0.8" opacity="0.5"/><rect x="86" y="11" width="38" height="14" rx="4" stroke="${c}" stroke-width="1.3" fill="${c}18"/><rect x="86" y="45" width="38" height="14" rx="4" stroke="${c}" stroke-width="1.3" fill="${c}18"/><circle cx="97" cy="18" r="5" stroke="${c}" stroke-width="1" fill="${c}28"/><circle cx="97" cy="18" r="2" fill="${c}44"/><circle cx="114" cy="18" r="5" stroke="${c}" stroke-width="1" fill="${c}28"/><circle cx="114" cy="18" r="2" fill="${c}44"/><circle cx="97" cy="52" r="5" stroke="${c}" stroke-width="1" fill="${c}28"/><circle cx="97" cy="52" r="2" fill="${c}44"/><circle cx="114" cy="52" r="5" stroke="${c}" stroke-width="1" fill="${c}28"/><circle cx="114" cy="52" r="2" fill="${c}44"/><line x1="86" y1="18" x2="80" y2="30" stroke="${c}" stroke-width="0.8" opacity="0.5"/><line x1="86" y1="52" x2="80" y2="40" stroke="${c}" stroke-width="0.8" opacity="0.5"/><text x="38" y="37" text-anchor="middle" fill="${c}" font-size="9" opacity="0.5">◄</text><text x="92" y="37" text-anchor="middle" fill="${c}" font-size="9" opacity="0.5">►</text><text x="65" y="70" text-anchor="middle" fill="${c}" font-size="7.5" font-weight="700" font-family="Share Tech Mono">FLAT-4 BOXER</text></svg>`,
+ohcv:`<svg viewBox="0 0 130 72" fill="none"><rect x="4" y="4" width="52" height="18" rx="5" stroke="${c}" stroke-width="1.5" fill="${c}18" transform="rotate(22 30 13)"/><circle cx="18" cy="10" r="5.5" stroke="${c}" stroke-width="1.2" fill="${c}25"/><circle cx="18" cy="10" r="2" fill="${c}44"/><circle cx="35" cy="16" r="5.5" stroke="${c}" stroke-width="1.2" fill="${c}25"/><circle cx="35" cy="16" r="2" fill="${c}44"/><circle cx="52" cy="22" r="5.5" stroke="${c}" stroke-width="1.2" fill="${c}25"/><circle cx="52" cy="22" r="2" fill="${c}44"/><rect x="74" y="4" width="52" height="18" rx="5" stroke="${c}" stroke-width="1.5" fill="${c}18" transform="rotate(-22 100 13)"/><circle cx="112" cy="10" r="5.5" stroke="${c}" stroke-width="1.2" fill="${c}25"/><circle cx="112" cy="10" r="2" fill="${c}44"/><circle cx="95" cy="16" r="5.5" stroke="${c}" stroke-width="1.2" fill="${c}25"/><circle cx="95" cy="16" r="2" fill="${c}44"/><circle cx="78" cy="22" r="5.5" stroke="${c}" stroke-width="1.2" fill="${c}25"/><circle cx="78" cy="22" r="2" fill="${c}44"/><path d="M52 22 Q65 28 78 22 L78 46 Q65 54 52 46 Z" stroke="${c}" stroke-width="1.2" fill="${c}15"/><ellipse cx="65" cy="38" rx="10" ry="8" stroke="${c}" stroke-width="1" fill="${c}28" stroke-dasharray="2 2"/><circle cx="65" cy="38" r="3" stroke="${c}" stroke-width="0.8" fill="${c}44"/><rect x="58" y="46" width="14" height="10" rx="3" stroke="${c}" stroke-width="1" fill="${c}30"/><text x="65" y="68" text-anchor="middle" fill="${c}" font-size="7.5" font-weight="700" font-family="Share Tech Mono">V-TYPE OHC (V6)</text></svg>`,
+rotor:`<svg viewBox="0 0 130 72" fill="none"><path d="M65 6 C92 6,112 18,112 36 C112 54,92 66,65 66 C38 66,18 54,18 36 C18 18,38 6,65 6 Z" stroke="${c}" stroke-width="1.8" fill="${c}10"/><path d="M65 12 C88 12,106 22,106 36 C106 50,88 60,65 60 C42 60,24 50,24 36 C24 22,42 12,65 12 Z" stroke="${c}" stroke-width="0.8" fill="none" stroke-dasharray="3 2" opacity="0.35"/><g><path d="M65 16 Q84 30 80 50 Q65 58 50 50 Q46 30 65 16 Z" stroke="${c}" stroke-width="1.5" fill="${c}25" stroke-linejoin="round"><animateTransform attributeName="transform" type="rotate" from="0 65 36" to="360 65 36" dur="4s" repeatCount="indefinite"/></path><circle cx="65" cy="16" r="2.5" fill="${c}99"><animateTransform attributeName="transform" type="rotate" from="0 65 36" to="360 65 36" dur="4s" repeatCount="indefinite"/></circle><circle cx="80" cy="50" r="2.5" fill="${c}99"><animateTransform attributeName="transform" type="rotate" from="0 65 36" to="360 65 36" dur="4s" repeatCount="indefinite"/></circle><circle cx="50" cy="50" r="2.5" fill="${c}99"><animateTransform attributeName="transform" type="rotate" from="0 65 36" to="360 65 36" dur="4s" repeatCount="indefinite"/></circle></g><circle cx="65" cy="36" r="6.5" stroke="${c}" stroke-width="1.2" fill="${c}40"/><circle cx="65" cy="36" r="2.5" stroke="${c}" stroke-width="0.8" fill="${c}66"/><rect x="12" y="31" width="5" height="10" rx="2" stroke="${c}" stroke-width="1" fill="${c}30"/><text x="10" y="28" fill="${c}" font-size="5" font-family="Share Tech Mono" text-anchor="middle" opacity="0.8">IN</text><rect x="113" y="31" width="5" height="10" rx="2" stroke="${c}" stroke-width="1" fill="${c}30"/><text x="120" y="28" fill="${c}" font-size="5" font-family="Share Tech Mono" text-anchor="middle" opacity="0.8">EX</text><text x="65" y="70" text-anchor="middle" fill="${c}" font-size="7.5" font-weight="700" font-family="Share Tech Mono">WANKEL ROTARY</text></svg>`
+};return s[t]||s.ohc;}
+
+// ── Dropdown ─────────────────────────────────────────────────────────────
+function buildDD(){
+  const menu=document.getElementById('ddMenu');
+  BODIES.forEach(bd=>{
+    const c=BC[bd.b];
+    const row=document.createElement('div');
+    row.className='dd-option'+(bd.b===selBody?' selected':'');
+    row.dataset.b=bd.b;
+    row.style.setProperty('--oc',c);
+    row.innerHTML=`<svg class="dd-icon" viewBox="0 0 40 25" fill="none" style="--c:${c}">${ICONS[bd.b]||ICONS.all}</svg>
+      <span class="dd-name ${bd.b===selBody?'sel-active':''}">${bd.label.toUpperCase()}</span>
+      <span class="dd-count">${bd.n} cars</span>`;
+    row.addEventListener('click',()=>{selBody=bd.b;closeDD();render();});
+    menu.appendChild(row);
+  });
+  updateDDBtn();
+}
+function updateDDBtn(){
+  const bd=BODIES.find(b=>b.b===selBody)||BODIES[0];
+  const c=BC[bd.b];
+  document.getElementById('ddThumb').innerHTML=`<svg viewBox="0 0 40 25" fill="none" style="--c:${c}">${ICONS[bd.b]||ICONS.all}</svg>`;
+  document.getElementById('ddLabel').textContent=bd.label.toUpperCase();
+  document.getElementById('ddBtn').style.borderColor=selBody==='all'?'#1e293b':c;
+  // refresh options
+  document.querySelectorAll('.dd-option').forEach(o=>{
+    o.classList.toggle('selected',o.dataset.b===selBody);
+    o.querySelector('.dd-name').classList.toggle('sel-active',o.dataset.b===selBody);
+  });
+}
+function toggleDD(){
+  const btn=document.getElementById('ddBtn'),menu=document.getElementById('ddMenu');
+  btn.classList.toggle('open');menu.classList.toggle('open');
+}
+function closeDD(){
+  document.getElementById('ddBtn').classList.remove('open');
+  document.getElementById('ddMenu').classList.remove('open');
+}
+document.addEventListener('click',e=>{if(!document.getElementById('ddWrap').contains(e.target))closeDD();});
+
+// ── Init engine buttons + bars ────────────────────────────────────────────
+function init(){
+  const ew=document.getElementById('engineBtns');
+  ENGINES.forEach(e=>{
+    const b=document.createElement('button');b.className='eng-btn';b.textContent=e.t.toUpperCase();
+    b.style.setProperty('--bc',EC[e.t].m);b.style.setProperty('--bb',EC[e.t].b);b.style.setProperty('--bs',EC[e.t].s);
+    b.addEventListener('click',()=>{selEngine=selEngine===e.t?null:e.t;render();});
+    ew.appendChild(b);
+  });
+  const cw=document.getElementById('barChart');
+  ENGINES.forEach(e=>{
+    const g=document.createElement('div');g.className='bar-group';g.dataset.t=e.t;g.addEventListener('click',()=>{selEngine=selEngine===e.t?null:e.t;render();});
+    const cn=document.createElement('div');cn.className='bar-count';cn.id='bc_'+e.t;cn.style.color=EC[e.t].m;
+    const br=document.createElement('div');br.className='bar';br.id='bb_'+e.t;br.style.background=`linear-gradient(to top,${EC[e.t].m}cc,${EC[e.t].m}44)`;
+    const lb=document.createElement('div');lb.className='bar-label';lb.textContent=e.t.toUpperCase();
+    g.append(cn,br,lb);cw.appendChild(g);
+  });
+  buildDD();
+}
+
+// ── Render ────────────────────────────────────────────────────────────────
+function render(){
+  const eng=selEngine?ENGINES.find(e=>e.t===selEngine):null;
+  const bod=BODIES.find(b=>b.b===selBody)||BODIES[0];
+  const activeColor=eng?EC[eng.t].m:BC[selBody];
+
+  // Button states
+  document.querySelectorAll('.eng-btn').forEach(b=>b.classList.toggle('active',b.textContent===selEngine?.toUpperCase()));
+  updateDDBtn();
+
+  // ── Car image (single) ──
+  document.getElementById('carImg').src=bod.img;
+  const tag=document.getElementById('carTag');
+  const badge=document.getElementById('bodyBadge');
+  if(eng){tag.textContent=eng.t.toUpperCase()+' ENGINE';tag.style.background=EC[eng.t].m;}
+  else{tag.textContent=selBody==='all'?'SELECT ENGINE':bod.label.toUpperCase();tag.style.background=selBody==='all'?'#38bdf8':BC[selBody];}
+  if(selBody!=='all'){
+    badge.textContent=bod.label.toUpperCase();badge.style.color=BC[selBody];badge.style.background=BC[selBody]+'22';badge.style.border='1px solid '+BC[selBody]+'44';
+  } else {
+    badge.textContent='ALL BODIES';badge.style.color='#475569';badge.style.background='#1a2a4a';badge.style.border='none';
+  }
+
+  // ── Engine overlay ──
+  const gl=document.getElementById('engGlow'),di=document.getElementById('engDia');
+  if(eng){
+    gl.style.setProperty('--gc',EC[eng.t].m+'55');di.style.setProperty('--ec',EC[eng.t].m);
+    const isR=eng.loc==='rear';
+    if(isR){gl.style.top='68%';gl.style.left='calc(50% - 52px)';di.style.top='70%';di.style.left='calc(50% - 52px)';}
+    else{gl.style.top='2%';gl.style.left='calc(50% - 52px)';di.style.top='3%';di.style.left='calc(50% - 52px)';}
+    gl.classList.add('on');di.classList.add('on');di.innerHTML=eSVG(eng.t,EC[eng.t].m);
+    const lb=isR?`<span style="color:${EC[eng.t].m};font-size:.6rem;font-family:Share Tech Mono;padding:2px 6px;background:${EC[eng.t].m}22;border-radius:3px;margin-left:5px">⚠ REAR</span>`:'';
+    document.getElementById('carFooter').innerHTML=eng.ds+lb;
+    document.getElementById('cylInfo').innerHTML='<span class="lbl">CYL:</span>'+eng.cy.map(x=>`<span class="info-chip">${x}</span>`).join('');
+    document.getElementById('fsInfo').innerHTML='<span class="lbl">FUEL:</span>'+eng.fs.map(x=>`<span class="info-chip">${x}</span>`).join('');
+  } else {
+    gl.classList.remove('on');di.classList.remove('on');
+    document.getElementById('carFooter').innerHTML=selBody!=='all'?bod.desc:'';
+    document.getElementById('cylInfo').innerHTML='';document.getElementById('fsInfo').innerHTML='';
+  }
+
+  // ── Bar chart ──
+  const bodData=selBody!=='all'?COMB[selBody]:null;
+  const maxN=bodData?Math.max(...bodData.map(d=>d.n),1):Math.max(...ENGINES.map(e=>e.n));
+  document.getElementById('chartTitle').textContent=selBody!=='all'?`Engine Mix — ${bod.label}`:'Cars by Engine Type';
+  ENGINES.forEach(e=>{
+    const n=bodData?(bodData.find(d=>d.t===e.t)?.n??0):e.n;
+    document.getElementById('bc_'+e.t).textContent=n;
+    const bar=document.getElementById('bb_'+e.t);
+    bar.style.height=`${Math.max((n/maxN)*135,n>0?4:2)}px`;
+    bar.style.opacity=n===0?'0.15':'1';
+    const g=bar.closest('.bar-group');
+    g.classList.toggle('dimmed',!!(selEngine&&selEngine!==e.t));
+    g.classList.toggle('active',selEngine===e.t);
+  });
+
+  // ── Stats ──
+  let statsN=null,statsHP=null,statsPR=null,statsMP=null,makes=[];
+  if(eng&&selBody!=='all'){
+    const row=COMB[selBody]?.find(d=>d.t===eng.t);
+    if(row?.n>0){statsN=row.n;statsHP=row.hp;statsPR=row.pr;statsMP=row.mp;}
+    makes=bod.mk;
+  } else if(eng){
+    statsN=eng.n;statsHP=eng.hp;statsPR=eng.pr;statsMP=eng.mp;
+    makes=BODIES.filter(b=>b.b!=='all').flatMap(b=>COMB[b.b]?.find(d=>d.t===eng.t)?.n>0?b.mk:[]).filter((v,i,a)=>a.indexOf(v)===i);
+  } else if(selBody!=='all'){
+    statsN=bod.n;statsHP=bod.hp;statsPR=bod.pr;statsMP=bod.mp;
+    makes=bod.mk;
+  }
+  document.querySelectorAll('.stat-val').forEach(e=>e.style.color=activeColor);
+  if(statsN!==null){aV('sC',statsN,'',false);aV('sH',statsHP,' hp',false);aV('sP',statsPR,'',true);aV('sM',statsMP,' mpg',false);}
+  else['sC','sH','sP','sM'].forEach(id=>document.getElementById(id).textContent='—');
+
+  const ml=document.getElementById('makesList');
+  if(makes.length)ml.innerHTML=makes.sort().map(m=>`<span class="make-tag" style="border-color:${activeColor}44;color:${activeColor}">${m}</span>`).join('');
+  else ml.innerHTML='<span style="color:#475569">'+(eng||selBody!=='all'?'No data for this combination':'Select above')+'</span>';
+}
+
+function aV(id,tgt,sfx,ip){
+  if(!tgt){document.getElementById(id).textContent='—';return;}
+  const e=document.getElementById(id),dur=450,s=performance.now();
+  function u(n){const p=Math.min((n-s)/dur,1),v=Math.round(tgt*(1-Math.pow(1-p,3)));
+  e.textContent=(ip?'$':'')+v.toLocaleString()+sfx;if(p<1)requestAnimationFrame(u);}
+  requestAnimationFrame(u);
+}
+
+init();
+setTimeout(()=>{selEngine='ohc';selBody='sedan';render();},300);
+</script>
+</body>
+</html>
